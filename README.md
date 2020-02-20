@@ -1,0 +1,1 @@
+Parser for standupstore.ru
