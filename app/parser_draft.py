@@ -72,11 +72,11 @@ for event in events:
     if not when:
         continue
     price = get_event_price(event)                  # returns None if can't fetch
-    poster = get_event_poster(event)                # returns None if can't fetch
+    poster_url = get_event_poster_url(event)        # returns None if can't fetch
     is_available = check_event_availability(event)  # returns None if can't fetch
     seats_left = fetch_remaining_tickets(event)     # returns None if can't fetch
 
-    susp.db.save_event(when, price, poster, is_available, seats_left)
+    susp.db.save_event(when, price, poster_url, is_available, seats_left)
     # saves if event is new or updates if it's existing event
     # also can have some logic like if availability has changed from False to True
     # also need to place somewhere logic of notifying about new events
