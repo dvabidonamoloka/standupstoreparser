@@ -89,3 +89,49 @@ def get_all_events():
     # url = 
     # while ...:
     #     html = get_html(url)
+
+
+def get_event_datetime_str(event):
+    """Some text here."""
+    # first trying with comment, then trying with t778__descr
+    # also here can be found some other comment, so need some assertion check here
+    comment = event.find(string=lambda text: isinstance(text, Comment))
+    comment_soup = BeautifulSoup(comment, 'html.parser')
+    event_datetime_str = comment_soup.find('a').get('data-date', None)
+
+    if not event_datetime_str:
+        try:
+            event_datetime_str = event.find(class_="t778__descr").text
+        except AttributeError:  # if nothing found
+            pass
+
+    return event_datetime_str
+
+
+def get_event_price(event):
+    """Some text here."""
+    event_price = None
+
+    comment = event.find(string=lambda text: isinstance(text, Comment))
+    if comment:
+        comment_soup = BeautifulSoup(comment, 'html.parser')
+        link = comment_soup.find('a')
+        if link:
+            event_price = link.get('data-cost', None)
+            
+    if not event_price:
+#       price_div = event.find('div', class_="js-product-price") - which class is better?1
+        price_div = event.find('div', class_="t778__price")
+        if price_div:
+            event_price = price_div.text
+            
+    return event_price if event_price else None
+
+
+def get_event_poster_url(event):
+    event_poster = None
+    
+    poster_div = event.find('div', class_="js-product-img")
+    event_poster_url = poster_div.get("data-original")
+    
+    return event_poster_url
