@@ -1,4 +1,7 @@
+import random
+import re
 import requests
+import time
 
 from bs4 import BeautifulSoup
 from bs4 import Comment
@@ -17,13 +20,31 @@ html = response.content
 
 
 # actual parsing
+soup = BeautifulSoup(html,'html.parser')
+
+events = soup.findAll('div', class_="t778__col")
+event1 = events[0]
+event2 = events[1]
+event3 = BeautifulSoup("""<div class="t778__mark">5 мест</div>""", "html.parser")
+
 """
-#### Для работы парсера надо
+### Чтобы парсер заработал, надо
+
+#### Найти все мероприятия на сайте
+1. первый способ: найти все блоки класса "t778__col"
+        events = soup.findAll('div', class_="t778__col")
+2. второй способ: ??? - нужно еще посмотреть для надежности
+        проверить классы t_col t_col_4 t_item js
+
+
+#### Вытащить информацию о каждом мероприятии
 
 1. гарантированно находить дату и время события, т.к. это будет идентификатор мероприятия  
-    сейчас это хранится в пяти местах, можно искать каждое по очереди, если не найдены дата или время
-    1. первый способ: через div t778__descr - блок, в котором лежит инфа, которая отображается на странице
+    сейчас это хранится в пяти местах, может искать каждое по очереди, если не найдены дата или время
+    1. первый способ: через поле data-date в закоментированной строке
+    2. второй способ: через div t778__descr - блок, в котором лежит инфа, которая отображается на странице
             data-date="24 февраля, 21:30"
+    строку можно превратить в datetime  
 
 2. находить стоимость мероприятия
     1. первый способ: находить блок с ценой, но этого блока может не быть
@@ -41,24 +62,13 @@ html = response.content
     3. третий и четыверный способы аналогичны, но для дублирующего блока с картинками, пока нет смысла расписывать
     
 4. находить и сохранять доступность билетов в виде булевого значения
+    1. первый способ (желаемый): через поле data-seats в закоментированной строке-ссылке, если мест 0, то билетов нет. Минус в том, что пока не понятно, всегда ли есть и будет закоментированная строка-ссылка
+    2. второй способ: через слова "Места есть", "Мест нет" — минус в том, что иногда формулировка может отличаться, например "Осталось 3 места"
 
 5. находить и сохранять количество оставшихся мест, если указаны
-"""
-soup = BeautifulSoup(html,'html.parser')
+    1. первый способ (желаемый): через поле data-seats в закоментированной строке-ссылке, если мест 0, то билетов нет. Минус в том, что пока не понятно, всегда ли есть и будет закоментированная строка-ссылка
 
-
-events = soup.findAll('div', class_="t778__col")
-event1 = events[0]
-event2 = events[1]
-
-date_and_time = event.find(class_="t778__descr").text
-if event1.find('div', class_="js-product-price"):
-    event_price = event1.find('div', class_="js-product-price").text
-
-
-
-"""
-thoughts on how parsing process should look like
+примерная схема работы
 
 import susp.db
 import susp.events
@@ -84,11 +94,35 @@ for event in events:
 
 # automating parsing of all pages
 def get_all_events():
-    """Iterates pages and gets events on each page."""
-    pass
-    # url = 
-    # while ...:
-    #     html = get_html(url)
+    """Iterates pages and returns events from all pages."""
+
+    total_events = []
+    page_num = 1
+
+    page_events = True
+    while page_events:
+        page_url = 'https://standupstore.ru/page/{}/'.format(page_num)
+        page_response = requests.get(page_url, headers=headers)
+        page_html = page_response.content
+        page_soup = BeautifulSoup(page_html, 'html.parser')
+
+        page_events = page_soup.findAll('div', class_="js-product")
+        if not page_events:
+            page_events = page_soup.findAll('div', class_="t778__col")
+        if not page_events:
+            page_events = page_soup.findAll('div', class_="t778__wrapper")
+
+        if page_events:
+            events.extend(page_events)
+            page_num += 1
+            time.sleep(random.randint(5, 10))
+        # TODO: make functions for notification and saving html for further analysis
+        # else:
+        #     if not total_events:
+        #         notify("No events were found!")  # letting know, something 
+        #         save_html(page_html)             # for further checking
+
+    return total_events
 
 
 def get_event_datetime_str(event):
@@ -109,7 +143,8 @@ def get_event_datetime_str(event):
 
 
 def get_event_price(event):
-    """Some text here."""
+    """Returns price of given event."""
+
     event_price = None
 
     comment = event.find(string=lambda text: isinstance(text, Comment))
@@ -118,20 +153,80 @@ def get_event_price(event):
         link = comment_soup.find('a')
         if link:
             event_price = link.get('data-cost', None)
-            
+
     if not event_price:
-#       price_div = event.find('div', class_="js-product-price") - which class is better?1
+        # price_div = event.find('div', class_="js-product-price") - which class is better?1
         price_div = event.find('div', class_="t778__price")
         if price_div:
             event_price = price_div.text
-            
+
     return event_price if event_price else None
 
 
 def get_event_poster_url(event):
-    event_poster = None
+    """Returns poster url of given event."""
+
+    event_poster_url = None
     
     poster_div = event.find('div', class_="js-product-img")
     event_poster_url = poster_div.get("data-original")
     
+    if not event_poster_url:
+        poster_div = event.find('div', class_="t778__bgimg")
+        event_poster_url = poster_div.get("data-original")
+
     return event_poster_url
+
+
+def is_available(event):
+    """Returns availability of given event."""
+
+    is_available = None
+
+    comment = event.find(string=lambda text: isinstance(text, Comment))
+    if comment:
+        comment_soup = BeautifulSoup(comment, 'html.parser')
+        link = comment_soup.find('a')
+        if link:
+            seats_num = link.get('data-seats')
+            if seats_num:
+                is_available = bool(int(seats_num))
+
+    if is_available is None:
+        availibility_mapping = {
+            "Нет мест": False,
+            "Места есть": True,
+            "\d мест": True,
+        }
+        seats_div = event.find("div", class_="t778__mark")
+        if seats_div:
+            for key in availibility_mapping:
+                if re.match(key, seats_div.text):
+                    is_available = availibility_mapping[key]
+                    break
+
+    return is_available
+
+
+def get_remaining_tickets(event):
+    """Returns number of remaining tickets for given event."""
+
+    remaining_tickets = None
+
+    comment = event.find(string=lambda text: isinstance(text, Comment))
+    if comment:
+        comment_soup = BeautifulSoup(comment, 'html.parser')
+        link = comment_soup.find('a')
+        if link:
+            seats_num = link.get('data-seats')
+            if seats_num:
+                remaining_tickets = int(seats_num)
+
+    if remaining_tickets is None:
+        seats_div = event.find("div", class_="t778__mark")
+        if seats_div:
+            pattern = "\d мест"
+            if re.match(pattern, seats_div.text):
+                remaining_tickets = int(seats_div.text.split(' ')[0])
+
+    return remaining_tickets
