@@ -1,0 +1,4 @@
+# jupyter notebook files
+.ipy*
+.local/
+.cache/
