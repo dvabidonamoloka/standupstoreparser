@@ -113,7 +113,7 @@ def get_all_events():
             page_events = page_soup.findAll('div', class_="t778__wrapper")
 
         if page_events:
-            events.extend(page_events)
+            total_events.extend(page_events)
             page_num += 1
             time.sleep(random.randint(5, 10))
         # TODO: make functions for notification and saving html for further analysis
