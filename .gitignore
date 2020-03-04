@@ -2,3 +2,6 @@
 .ipy*
 .local/
 .cache/
+
+# virtual environment files
+.venv
