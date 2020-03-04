@@ -68,6 +68,9 @@ event3 = BeautifulSoup("""<div class="t778__mark">5 мест</div>""", "html.par
 5. находить и сохранять количество оставшихся мест, если указаны
     1. первый способ (желаемый): через поле data-seats в закоментированной строке-ссылке, если мест 0, то билетов нет. Минус в том, что пока не понятно, всегда ли есть и будет закоментированная строка-ссылка
 
+6. находить и сохранять ссылку на мероприятие, если ссылка существует
+    1. первый способ: брать первую ссылку из мероприятия, т.к. пока не нашел случаев, когда есть другие ссылки
+
 примерная схема работы
 
 import susp.db
@@ -85,6 +88,7 @@ for event in events:
     poster_url = get_event_poster_url(event)        # returns None if can't fetch
     is_available = check_event_availability(event)  # returns None if can't fetch
     seats_left = fetch_remaining_tickets(event)     # returns None if can't fetch
+    event_url = get_event_url(event)                # returns None if can't fetch
 
     susp.db.save_event(when, price, poster_url, is_available, seats_left)
     # saves if event is new or updates if it's existing event
@@ -230,3 +234,21 @@ def get_remaining_tickets(event):
                 remaining_tickets = int(seats_div.text.split(' ')[0])
 
     return remaining_tickets
+
+
+def get_event_url(event):
+    """Returns link to an event."""
+
+    event_url = None
+
+    link_tag = event.find("a")
+    if link_tag:
+        event_url = link_tag["href"]
+
+    return event_url
+
+
+# TODO:
+# продумать, что делать, если я пытаюсь сохранить информацию о мероприятии, а часть данных уже есть
+# надо ли перезаписывать или наоборот игнорировать?
+# может ли измениться цена? - пока будем считать, что не может
