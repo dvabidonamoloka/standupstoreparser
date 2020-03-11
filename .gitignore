@@ -3,5 +3,9 @@
 .local/
 .cache/
 
-# virtual environment files
+# virtual environment files and folders
 .venv
+env
+
+# Private files
+settings.py
