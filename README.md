@@ -1,5 +1,15 @@
 Parser for standupstore.ru
 
+### Run the app in docker
+Running prod version
+```sh
+docker-compose up -d
+```
+Running dev version, which has port forwarding
+```sh
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
 ### How to run jupyter notebook in docker
 1. Copy repo and go to repo folder. Also you need to install docker, if you didn't yet.
 2. Run docker container with mounted directory. Dont't worry, if you don't have an image, it'll be downloaded automatically.
