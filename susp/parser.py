@@ -1,10 +1,18 @@
+import logging
 import random
 import re
 import requests
 import time
 
+import susp.notifications
+
 from bs4 import BeautifulSoup
 from bs4 import Comment
+from mongoengine.errors import DoesNotExist
+
+from susp.event import Event
+
+LOG = logging.getLogger(__name__)
 
 
 def get_all_events():
@@ -163,7 +171,67 @@ def get_event_url(event):
     return event_url
 
 
-# TODO:
-# продумать, что делать, если я пытаюсь сохранить информацию о мероприятии, а часть данных уже есть
-# надо ли перезаписывать или наоборот игнорировать?
-# может ли измениться цена? - пока будем считать, что не может
+def check_events():
+    """Main parsing function."""
+
+    try:
+        LOG.info("Parsing events...")
+        events = susp.parser.get_all_events()
+
+        LOG.debug(f"Got {len(events)} events")
+
+        processed_events_count = 0
+        new_events_count = 0
+        became_available_events_count = 0
+
+        for event in events:
+            datetime_str = susp.parser.get_event_datetime_str(event)
+            if not datetime_str:
+                LOG.error(f"Couldn't fetch datetime_str for event: {event}, skipping...")
+                continue
+
+            LOG.debug(f"Processing event on {datetime_str}...")
+
+            is_available = susp.parser.get_event_availability(event)
+            price = susp.parser.get_event_price(event)
+            poster_url = susp.parser.get_event_poster_url(event)
+            seats_left = susp.parser.get_remaining_tickets(event)
+            url = susp.parser.get_event_url(event)
+
+            LOG.debug(f"Event availability: {is_available}")
+
+            try:
+                saved_event = Event.objects.get(datetime_str=datetime_str)
+                if is_available and not saved_event.is_available:
+                    LOG.debug("Updating saved event...")
+                    saved_event.is_available = is_available
+                    saved_event.price = price
+                    saved_event.seats_left = seats_left
+                    saved_event.save()
+                    susp.notifications.make_notification(saved_event, is_new=False)
+                    became_available_events_count += 1
+
+            except DoesNotExist:
+                LOG.debug("Creating new event...")
+                event = Event(
+                    datetime_str=datetime_str,
+                    price=price,
+                    poster_url=poster_url,
+                    is_available=is_available,
+                    seats_left=seats_left,
+                    url=url,
+                )
+                event.save()
+                susp.notifications.make_notification(event, is_new=True)
+                new_events_count += 1
+
+            processed_events_count += 1
+
+        LOG.info("Parsing finished")
+        LOG.info(f"Processed events:        {processed_events_count}")
+        LOG.info(f"New events:              {new_events_count}")
+        LOG.info(f"Events available again:  {became_available_events_count}")
+
+    except Exception as e:
+        LOG.exception("While checking events exception happened:")
+        raise
