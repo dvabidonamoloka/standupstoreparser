@@ -6,7 +6,7 @@ def make_logger():
 
     logger = logging.getLogger('susp')
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('susp.log')
+    fh = logging.FileHandler('/var/log/susp.log')
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     logger.addHandler(fh)
