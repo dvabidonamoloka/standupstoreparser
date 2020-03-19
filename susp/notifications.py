@@ -12,6 +12,6 @@ def post_to_channel(message):
     LOG.info('Connecting to the bot and posting message to the channel')
 
     mybot = telegram.Bot(token=settings.TOKEN, request=settings.REQPROXY)
-    mybot.send_message(chat_id=settings.CHAT_ID, text=message)
+    mybot.send_message(chat_id=settings.CHAT_ID, text=message, parse_mode='Markdown')
 
     LOG.info('Message posted to the channel')
