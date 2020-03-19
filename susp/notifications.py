@@ -44,3 +44,9 @@ def generate_event_message(event, is_new):
     return message
 
 
+def make_notification(event, is_new=False):
+    '''Creates message and posts it to the channel.'''
+
+    message = generate_event_message(event, is_new)
+    if message:
+        post_to_channel(message)
