@@ -1,3 +1,6 @@
 beautifulsoup4==4.8.2
 python-telegram-bot==12.4.2
 PySocks==1.7.1
+schedule==0.6.0
+requests==2.23.0
+mongoengine==0.19.1

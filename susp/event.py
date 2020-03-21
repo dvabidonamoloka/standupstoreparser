@@ -10,7 +10,7 @@ from mongoengine import (
 from mongoengine.errors import NotUniqueError, DoesNotExist
 
 # db connection
-connect('susp')
+connect('susp', host='mongodb')
 
 
 class Event(Document):
@@ -19,8 +19,8 @@ class Event(Document):
     meta = {'collection': 'events'}
 
     datetime_str = StringField(required=True, unique=True)
-    price = IntField()
+    price = StringField()
     poster_url = StringField()
     is_available = BooleanField()
-    seats_left = IntField()
+    seats_left = StringField()
     url = StringField()

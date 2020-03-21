@@ -1,7 +1,8 @@
 import logging
-import settings
+
 import telegram
 
+from susp import settings
 
 LOG = logging.getLogger(__name__)
 

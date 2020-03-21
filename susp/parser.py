@@ -1,104 +1,27 @@
+import logging
 import random
 import re
 import requests
 import time
 
+import susp.notifications
+
 from bs4 import BeautifulSoup
 from bs4 import Comment
+from mongoengine.errors import DoesNotExist
+
+from susp.event import Event
+
+LOG = logging.getLogger(__name__)
 
 
-# playing with user agents
-chrome_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-safari_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15"
-headers = {"User-Agent": safari_ua}
-
-
-# getting page
-url = "http://standupstore.ru/"
-response = requests.get(url, headers=headers)
-html = response.content
-
-
-# actual parsing
-soup = BeautifulSoup(html,'html.parser')
-
-events = soup.findAll('div', class_="t778__col")
-event1 = events[0]
-event2 = events[1]
-event3 = BeautifulSoup("""<div class="t778__mark">5 мест</div>""", "html.parser")
-
-"""
-### Чтобы парсер заработал, надо
-
-#### Найти все мероприятия на сайте
-1. первый способ: найти все блоки класса "t778__col"
-        events = soup.findAll('div', class_="t778__col")
-2. второй способ: ??? - нужно еще посмотреть для надежности
-        проверить классы t_col t_col_4 t_item js
-
-
-#### Вытащить информацию о каждом мероприятии
-
-1. гарантированно находить дату и время события, т.к. это будет идентификатор мероприятия  
-    сейчас это хранится в пяти местах, может искать каждое по очереди, если не найдены дата или время
-    1. первый способ: через поле data-date в закоментированной строке
-    2. второй способ: через div t778__descr - блок, в котором лежит инфа, которая отображается на странице
-            data-date="24 февраля, 21:30"
-    строку можно превратить в datetime  
-
-2. находить стоимость мероприятия
-    1. первый способ: находить блок с ценой, но этого блока может не быть
-            if event1.find('div', class_="js-product-price"):
-                event_price = event1.find('div', class_="js-product-price").text
-    2. второй способ:
-            comment = event2.find(string=lambda text: isinstance(text, Comment))
-            comment_soup = BeautifulSoup(comment, 'html.parser')
-            event_price = comment_soup.find('a')['data-cost']
-
-3. находить и сохранять афишу мероприятия
-    1. первый способ: находить блок с картинкой и брать поле data-original
-            event1.find('div', class_="js-product-img")["data-original"]
-    2. второй способ: находить блок с картинкой, брать поле style и каким-то образом вытаскивать оттуда
-    3. третий и четыверный способы аналогичны, но для дублирующего блока с картинками, пока нет смысла расписывать
-    
-4. находить и сохранять доступность билетов в виде булевого значения
-    1. первый способ (желаемый): через поле data-seats в закоментированной строке-ссылке, если мест 0, то билетов нет. Минус в том, что пока не понятно, всегда ли есть и будет закоментированная строка-ссылка
-    2. второй способ: через слова "Места есть", "Мест нет" — минус в том, что иногда формулировка может отличаться, например "Осталось 3 места"
-
-5. находить и сохранять количество оставшихся мест, если указаны
-    1. первый способ (желаемый): через поле data-seats в закоментированной строке-ссылке, если мест 0, то билетов нет. Минус в том, что пока не понятно, всегда ли есть и будет закоментированная строка-ссылка
-
-6. находить и сохранять ссылку на мероприятие, если ссылка существует
-    1. первый способ: брать первую ссылку из мероприятия, т.к. пока не нашел случаев, когда есть другие ссылки
-
-примерная схема работы
-
-import susp.db
-import susp.events
-
-html = ...
-soup = ...
-events = susp.events.all()
-
-for event in events:
-    when = get_event_datetime(event)                # if nothing found leaving this event
-    if not when:
-        continue
-    price = get_event_price(event)                  # returns None if can't fetch
-    poster_url = get_event_poster_url(event)        # returns None if can't fetch
-    is_available = check_event_availability(event)  # returns None if can't fetch
-    seats_left = fetch_remaining_tickets(event)     # returns None if can't fetch
-    event_url = get_event_url(event)                # returns None if can't fetch
-
-    susp.db.save_event(when, price, poster_url, is_available, seats_left)
-    # saves if event is new or updates if it's existing event
-    # also can have some logic like if availability has changed from False to True
-    # also need to place somewhere logic of notifying about new events
-"""
-
-# automating parsing of all pages
 def get_all_events():
     """Iterates pages and returns events from all pages."""
+
+    # playing with user agents
+    chrome_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    safari_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15"
+    headers = {"User-Agent": safari_ua}
 
     total_events = []
     page_num = 1
@@ -182,7 +105,7 @@ def get_event_poster_url(event):
     return event_poster_url
 
 
-def is_available(event):
+def get_event_availability(event):
     """Returns availability of given event."""
 
     is_available = None
@@ -224,14 +147,19 @@ def get_remaining_tickets(event):
         if link:
             seats_num = link.get('data-seats')
             if seats_num:
-                remaining_tickets = int(seats_num)
+                remaining_tickets = seats_num
 
     if remaining_tickets is None:
         seats_div = event.find("div", class_="t778__mark")
         if seats_div:
             pattern = "\d мест"
             if re.match(pattern, seats_div.text):
-                remaining_tickets = int(seats_div.text.split(' ')[0])
+                remaining_tickets = seats_div.text.split(' ')[0]
+
+    if remaining_tickets is None:
+        seats_div = event.find("div", class_="t778__mark")
+        if seats_div:
+            remaining_tickets = seats_div.text
 
     return remaining_tickets
 
@@ -248,7 +176,67 @@ def get_event_url(event):
     return event_url
 
 
-# TODO:
-# продумать, что делать, если я пытаюсь сохранить информацию о мероприятии, а часть данных уже есть
-# надо ли перезаписывать или наоборот игнорировать?
-# может ли измениться цена? - пока будем считать, что не может
+def check_events():
+    """Main parsing function."""
+
+    try:
+        LOG.info("Parsing events...")
+        events = susp.parser.get_all_events()
+
+        LOG.debug(f"Got {len(events)} events")
+
+        processed_events_count = 0
+        new_events_count = 0
+        became_available_events_count = 0
+
+        for event in events:
+            datetime_str = susp.parser.get_event_datetime_str(event)
+            if not datetime_str:
+                LOG.error(f"Couldn't fetch datetime_str for event: {event}, skipping...")
+                continue
+
+            LOG.debug(f"Processing event on {datetime_str}...")
+
+            is_available = susp.parser.get_event_availability(event)
+            price = susp.parser.get_event_price(event)
+            poster_url = susp.parser.get_event_poster_url(event)
+            seats_left = susp.parser.get_remaining_tickets(event)
+            url = susp.parser.get_event_url(event)
+
+            LOG.debug(f"Event availability: {is_available}")
+
+            try:
+                saved_event = Event.objects.get(datetime_str=datetime_str)
+                if is_available and not saved_event.is_available:
+                    LOG.debug("Updating saved event...")
+                    saved_event.is_available = is_available
+                    saved_event.price = price
+                    saved_event.seats_left = seats_left
+                    saved_event.save()
+                    susp.notifications.make_notification(saved_event, is_new=False)
+                    became_available_events_count += 1
+
+            except DoesNotExist:
+                LOG.debug("Creating new event...")
+                event = Event(
+                    datetime_str=datetime_str,
+                    price=price,
+                    poster_url=poster_url,
+                    is_available=is_available,
+                    seats_left=seats_left,
+                    url=url,
+                )
+                event.save()
+                susp.notifications.make_notification(event, is_new=True)
+                new_events_count += 1
+
+            processed_events_count += 1
+
+        LOG.info("Parsing finished")
+        LOG.info(f"Processed events:        {processed_events_count}")
+        LOG.info(f"New events:              {new_events_count}")
+        LOG.info(f"Events available again:  {became_available_events_count}")
+
+    except Exception as e:
+        LOG.exception("While checking events exception happened:")
+        raise

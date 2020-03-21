@@ -14,9 +14,8 @@ setup(
     author="Rouslan Gaisin, Timur Odintsov",
     packages=find_packages(),
     entry_points={
-        # TODO: # finish this after creating infinite loop for main script
         "console_scripts": [
-            "check_events = susp.check_events:main",
+            "susp-run = susp.app:run_parser",
         ],
     },
     python_requires='>=3.7',

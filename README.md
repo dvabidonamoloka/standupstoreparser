@@ -1,4 +1,29 @@
-Parser for standupstore.ru
+# Parser for standupstore.ru
+
+Parser, that periodically checks new events on [standupstore.ru](https://standupstore.ru/) and posts notifications to telegram channel.
+
+### Quick start
+1. Install git, docker and docker-compose
+2. Clone repo
+    ```sh
+    git clone git@github.com:dvabidonamoloka/standupstoreparser.git
+    ```
+3. Add settings.py to `susp/` folder by the following template:
+    ```python
+    import telegram
+    TOKEN = 'your_telegram_bot_token'
+    REQPROXY = telegram.utils.request.Request(  # proxy settings
+        proxy_url='proxy_url',
+        urllib3_proxy_kwargs={'some': 'kwargs'}
+    )
+    CHAT_ID = '@your_telegram_channel_name'
+    ```
+    Note, that telegram bot has to be the admin of the channel
+4. Run containers with docker-compose
+    ```sh
+    docker-compose up -d
+    ```
+
 
 ### Run the app in docker
 Running prod version
@@ -9,20 +34,11 @@ Running dev version, which has port forwarding
 ```sh
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
-
-### How to run jupyter notebook in docker
-1. Copy repo and go to repo folder. Also you need to install docker, if you didn't yet.
-2. Run docker container with mounted directory. Dont't worry, if you don't have an image, it'll be downloaded automatically.
-    ```sh
-    docker run -dit -v ${PWD}:/home/jovyan/ -p 8888:8888 jupyter/base-notebook
-    ```
-    As you can see, we got container id as an output.
-    ```sh
-    bb56438780fa6c8ffd9b26927259b246b30be54673bf678228c94af
-    ```
-3. We need token to get access for jupyter server. We can get logs to see token by simply run 'docker logs' command with specifying containder id. First few letter of the container id will be enought. Remember to replace "bb56" with first letter of your container.
-    ```sh
-    docker logs bb56
-    ```
-4. Open http://localhost:8888/ in your browser and enter a token.
-5. Ready! Now all of your notebooks will be saved in repo folder.
+Rebuild app image before running container:
+```sh
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --force-recreate
+```
+Running only mongo container
+```sh
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongo
+```
