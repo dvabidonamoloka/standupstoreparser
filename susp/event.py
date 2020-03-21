@@ -22,5 +22,5 @@ class Event(Document):
     price = StringField()
     poster_url = StringField()
     is_available = BooleanField()
-    seats_left = IntField()
+    seats_left = StringField()
     url = StringField()

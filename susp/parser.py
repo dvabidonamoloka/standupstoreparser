@@ -147,14 +147,19 @@ def get_remaining_tickets(event):
         if link:
             seats_num = link.get('data-seats')
             if seats_num:
-                remaining_tickets = int(seats_num)
+                remaining_tickets = seats_num
 
     if remaining_tickets is None:
         seats_div = event.find("div", class_="t778__mark")
         if seats_div:
             pattern = "\d мест"
             if re.match(pattern, seats_div.text):
-                remaining_tickets = int(seats_div.text.split(' ')[0])
+                remaining_tickets = seats_div.text.split(' ')[0]
+
+    if remaining_tickets is None:
+        seats_div = event.find("div", class_="t778__mark")
+        if seats_div:
+            remaining_tickets = seats_div.text
 
     return remaining_tickets
 
