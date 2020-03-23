@@ -17,6 +17,11 @@ Parser, that periodically checks new events on [standupstore.ru](https://standup
         urllib3_proxy_kwargs={'some': 'kwargs'}
     )
     CHAT_ID = '@your_telegram_channel_name'
+    EXCEPTIONS_EMAIL_TO = 'email'  # email to which you will receive error logs
+    EXCEPTIONS_EMAIL_FROM = 'email'  # email from which error logs will be sent
+    SMPT_SERVER = 'smpt_server_adress'
+    SMPT_PORT = 'smpt_server_port'
+    SMPT_PASSWORD = 'password of email from which error logs will be sent'
     ```
     Note, that telegram bot has to be the admin of the channel
 4. Run containers with docker-compose
