@@ -15,7 +15,7 @@ def make_logger():
 
     logger = logging.getLogger('susp')
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('susp.log')
+    fh = logging.FileHandler('/var/log/susp.log')
     sh = logging.StreamHandler(stream=sys.stdout)
     # TODO: make mutable subject in SMTPHandler to know right away what kind of error came
     mh = logging.handlers.SMTPHandler(
