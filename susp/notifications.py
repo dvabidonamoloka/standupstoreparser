@@ -35,7 +35,7 @@ def generate_event_message(event, is_new):
         url = event.url or 'https://standupstore.ru/'
 
         message = f'Дата:[ ]({poster_url}){date}\nЦена: {price}\nОсталость мест: {seats}\n[Купить билеты]({url})'
-        if is_new:
+        if not is_new:
             message = 'Билеты снова в продаже!\n' + message
             
         LOG.debug('Message created')
