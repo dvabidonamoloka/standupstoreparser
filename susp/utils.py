@@ -17,11 +17,11 @@ def make_logger():
     fh = logging.FileHandler('susp.log')
     # TODO: make mutable subject in SMTPHandler to know right away what kind of error came
     mh = logging.handlers.SMTPHandler(
-        mailhost=(settings.SMPT_SERVER, settings.SMPT_PORT),
+        mailhost=(settings.SMTP_SERVER, settings.SMTP_PORT),
         fromaddr=settings.EXCEPTIONS_EMAIL_FROM,
         toaddrs=settings.EXCEPTIONS_EMAIL_TO,
         subject='Standupstore parser catched an exception',
-        credentials=(settings.EXCEPTIONS_EMAIL_FROM, settings.SMPT_PASSWORD),
+        credentials=(settings.EXCEPTIONS_EMAIL_FROM, settings.SMTP_PASSWORD),
         secure=()
     )
     mh.setLevel(logging.ERROR)
