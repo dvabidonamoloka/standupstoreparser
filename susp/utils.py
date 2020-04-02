@@ -8,7 +8,7 @@ def make_logger():
     '''
     Creats and sets logger configurations.
 
-    Note: use LOG.error(message, exc_info=True) or 
+    Note: use LOG.error(message, exc_info=True) or
     LOG.exception(message) to log traceback
     '''
 

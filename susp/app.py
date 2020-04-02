@@ -9,10 +9,9 @@ import schedule
 
 import susp.parser
 import susp.utils
+import susp.notifications
 
 LOG = susp.utils.make_logger()
-
-import susp.notifications
 
 
 def run_threaded(job_func):

@@ -4,10 +4,8 @@ from mongoengine import (
     connect,
     BooleanField,
     Document,
-    IntField,
     StringField,
 )
-from mongoengine.errors import NotUniqueError, DoesNotExist
 
 # db connection
 connect('susp', host='mongodb')
