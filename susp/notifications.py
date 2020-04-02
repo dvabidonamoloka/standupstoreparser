@@ -37,12 +37,12 @@ def generate_event_message(event, is_new):
         message = f'Дата:[ ]({poster_url}){date}\nЦена: {price}\nОсталость мест: {seats}\n[Купить билеты]({url})'
         if not is_new:
             message = 'Билеты снова в продаже!\n' + message
-            
+
         LOG.debug('Message created')
     else:
         LOG.error('Unable to generate a message: event url and poster url are missing')
         message = None
-    
+
     return message
 
 

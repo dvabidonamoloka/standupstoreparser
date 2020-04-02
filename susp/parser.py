@@ -19,8 +19,10 @@ def get_all_events():
     """Iterates pages and returns events from all pages."""
 
     # playing with user agents
-    chrome_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
-    safari_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15"
+    # chrome_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 \
+    #     (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36"
+    safari_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 \
+        (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15"
     headers = {"User-Agent": safari_ua}
 
     total_events = []
@@ -46,7 +48,7 @@ def get_all_events():
         # TODO: make functions for notification and saving html for further analysis
         # else:
         #     if not total_events:
-        #         notify("No events were found!")  # letting know, something 
+        #         notify("No events were found!")  # letting know, something
         #         save_html(page_html)             # for further checking
 
     return total_events
@@ -94,10 +96,10 @@ def get_event_poster_url(event):
     """Returns poster url of given event."""
 
     event_poster_url = None
-    
+
     poster_div = event.find('div', class_="js-product-img")
     event_poster_url = poster_div.get("data-original")
-    
+
     if not event_poster_url:
         poster_div = event.find('div', class_="t778__bgimg")
         event_poster_url = poster_div.get("data-original")
@@ -123,7 +125,7 @@ def get_event_availability(event):
         availibility_mapping = {
             "Нет мест": False,
             "Места есть": True,
-            "\d мест": True,
+            r"\d мест": True,
         }
         seats_div = event.find("div", class_="t778__mark")
         if seats_div:
@@ -152,7 +154,7 @@ def get_remaining_tickets(event):
     if remaining_tickets is None:
         seats_div = event.find("div", class_="t778__mark")
         if seats_div:
-            pattern = "\d мест"
+            pattern = r"\d мест"
             if re.match(pattern, seats_div.text):
                 remaining_tickets = seats_div.text.split(' ')[0]
 
@@ -238,5 +240,5 @@ def check_events():
         LOG.info(f"Events available again:  {became_available_events_count}")
 
     except Exception as e:
-        LOG.exception("While checking events exception happened:")
+        LOG.exception(f"While checking events exception happened: {e}")
         raise
