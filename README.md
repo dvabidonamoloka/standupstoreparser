@@ -10,13 +10,9 @@ Parser, that periodically checks new events on [standupstore.ru](https://standup
     ```
 3. Add settings.py to `susp/` folder by the following template:
     ```python
-    import telegram
     TOKEN = 'your_telegram_bot_token'
-    REQPROXY = telegram.utils.request.Request(  # proxy settings
-        proxy_url='proxy_url',
-        urllib3_proxy_kwargs={'some': 'kwargs'}
-    )
     CHAT_ID = '@your_telegram_channel_name'
+
     EXCEPTIONS_EMAIL_TO = 'email'  # email to which you will receive error logs
     EXCEPTIONS_EMAIL_FROM = 'email'  # email from which error logs will be sent
     SMPT_SERVER = 'smpt_server_adress'
